@@ -18,7 +18,7 @@ delSecs = []
 delNames = []
 
 def main():
-    elevate()
+    #elevate()
     if len(sys.argv) < 1:
         raise Exception('Enter drive letter')
     else:
@@ -68,6 +68,9 @@ def scanFiles(drive,sector,nextS):
         attrTypeID = eHex_to_int(getBytes(drive,sector,attribOffset,0x4))
         attrLength = eHex_to_int(getBytes(drive,sector,attribOffset+0x4,4))
         resident = eHex_to_int(getBytes(drive,sector,attribOffset+0x8,1))
+        #TODO: implement better handling
+        if(resident > 1):
+            break
         contentSize = eHex_to_int(getBytes(drive,sector,attribOffset+0x10,4))
         contentOffset = eHex_to_int(getBytes(drive,sector,attribOffset+0x14,2))
         #Jump to next attribute from current attrib's offset

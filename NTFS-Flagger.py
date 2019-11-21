@@ -5,11 +5,11 @@ import msvcrt
 import win32file
 import winioctlcon
 import contextlib
+import subprocess
+from elevate import elevate
 SECTOR_SIZE = 512
 SECTORS_PER_CLUST = 8
 MFT_SECTOR = 0
-#FILE ASCII -> int
-GOOD_FILE = 1162627398
 ATTR_NAME = 48
 # 0 gaps exist within MFT, how many to
 # encounter to quit
@@ -18,11 +18,12 @@ delSecs = []
 delNames = []
 
 def main():
-    
-    if False:
-        raise Exception('Not Enough Arguments')
+    elevate()
+    if len(sys.argv) < 1:
+        raise Exception('Enter drive letter')
     else:
-        drive = open(r'\\.\%s:' % "N","rb+")
+        print("sys: "+str(sys.argv[1]))
+        drive = open(r'\\.\%s:' % sys.argv[1],"rb+")
         SECTOR_SIZE = getSectorSize(drive)
         SECTORS_PER_CLUST = eHex_to_int(getBytes(drive,0,0x0D,1))
         MFT_SECTOR = (eHex_to_int(getBytes(drive,0,0x30,8))*SECTORS_PER_CLUST)
@@ -30,17 +31,28 @@ def main():
 
         index = 0
         zeroCount = 0
-        while(zeroCount<10):
+        while(zeroCount<STOP_SEARCH):
             zeroCount+= scanFiles(drive,MFT_SECTOR,index)
             index+=2
         
         print(delSecs)
         print(delNames)
-        #recover(drive)
+        if(askRecover()):
+            recover(drive)
+            subprocess.call("chkdsk "+str(sys.argv[1])+": /f", shell=True)
         freeDrive(drive)
 
+
+def askRecover():
+    print(str(len(delSecs)) +" file(s) found, recover? (y/n)")
+    print("File flags will be flipped to active and chkdsk _: /f will run to recover orphaned files.")
+    answer = input()
+    if(answer == "y"):
+        return True
+    return False
+
 def scanFiles(drive,sector,nextS):
-    
+
     sector+=nextS
     attrTypeID = 99
     attribOffset = 0x14
